@@ -116,18 +116,33 @@ class CPDatasetTest(data.Dataset):
         c_name = {}
         c = {}
         cm = {}
+        guitar = {}
         for key in self.c_names:
             c_name[key] = self.c_names[key][index]
             c[key] = Image.open(osp.join(self.data_path, 'cloth', c_name[key])).convert('RGB')
             c[key] = transforms.Resize(self.fine_width, interpolation=2)(c[key])
             cm[key] = Image.open(osp.join(self.data_path, 'cloth-mask', c_name[key]))
             cm[key] = transforms.Resize(self.fine_width, interpolation=0)(cm[key])
-
+            
+            #guitar[key] = Image.open(osp.join(self.data_path, 'guitar-mask', c_name[key]))
+            #guitar[key] = transforms.Resize(self.fine_width, interpolation=0)(cm[key])
+            
             c[key] = self.transform(c[key])  # [-1,1]
             cm_array = np.array(cm[key])
             cm_array = (cm_array >= 128).astype(np.float32)
             cm[key] = torch.from_numpy(cm_array)  # [0,1]
             cm[key].unsqueeze_(0)
+            
+            #guitar_array = np.array(guitar[key])
+            #guitar_array = (guitar_array >= 128).astype(np.float32)
+            #guitar[key] = torch.from_numpy(guitar_array)  # [0,1]
+            #guitar[key].unsqueeze_(0)
+            
+        #guitar mask
+        guitar_pil_big = Image.open(osp.join(self.data_path, 'guitar-mask', im_name))
+        guitar_pil = transforms.Resize(self.fine_width, interpolation=0)(guitar_pil_big)        
+        
+        guitar = self.transform(guitar_pil)
 
         # person image
         im_pil_big = Image.open(osp.join(self.data_path, 'image', im_name))
@@ -221,6 +236,9 @@ class CPDatasetTest(data.Dataset):
             # intput 1 (clothfloww)
             'cloth':    c,          # for input
             'cloth_mask':     cm,   # for input
+             
+            'guitar-mask':     guitar,   # for input
+            
             # intput 2 (segnet)
             'parse_agnostic': new_parse_agnostic_map,
             'densepose': densepose_map,
