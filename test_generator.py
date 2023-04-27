@@ -17,6 +17,8 @@ import torchgeometry as tgm
 from collections import OrderedDict
 
 from PIL import Image, ImageDraw
+import torchvision.transforms as transforms
+import numpy as np
 
 
 def remove_overlap(seg_out, warped_cm):
@@ -183,16 +185,73 @@ def test(opt, test_loader, tocg, generator):
             # make generator input parse map
             fake_parse_gauss = gauss(F.interpolate(fake_segmap, size=(opt.fine_height, opt.fine_width), mode='bilinear'))
             #guitar mask test
-            temp_array = fake_parse_gauss.load()
-            guitar_mask_img = guitar.load()
-            for i in range(mask_img.size[0]):  # for every pixel:
-                for j in range(mask_img.size[1]):
-                    if guitar_mask_img[i, j] == 255:
-                        # change to guitar
-                        temp_array[i, j] = (0, 85, 0, 255)
-                        
-            
+            #for i in range(shape[0]):
+
+
+
+            """
+            temp_fake_parse_gauss = visualize_segmap(fake_parse_gauss.cpu(), batch=0) 
+            """
+
+
+
+            #print("==========type is", type(temp_fake_parse_gauss),"==========")
+
+
+            """
+            transform_I = transforms.Compose([transforms.ToPILImage()])
+                
+            temp_array_1 = transform_I(temp_fake_parse_gauss)
+            """
+
+
+            #temp_array = temp_array_1.load()
+            #guitar_mask_img = guitar.load()
+            #for i in range(mask_img.size[0]):  # for every pixel:
+            #    for j in range(mask_img.size[1]):
+            #        if guitar_mask_img[i, j] == 255:
+            #            # change to guitar
+            #            temp_array[i, j] = (0, 85, 0, 255)
+
+
+            """
+            transform = transforms.Compose([transforms.ToTensor()])                            
+            temp_fake_parse_gauss = transform(temp_array_1)
+
+            fake_parse_gauss[0] = temp_fake_parse_gauss
+
+            """
+
             fake_parse = fake_parse_gauss.argmax(dim=1)[:, None]
+            #print(fake_parse.size())
+            
+
+            guitar_unloader = transforms.ToPILImage()
+            guitar = guitar_unloader(guitar[0])
+            #print(guitar.size[0])
+            #print(guitar.size[1])
+            guitar_mask_img = guitar.load()
+            
+
+            #print(set(fake_parse[0][0]))
+            """
+            for i in range(guitar.size[0]):  # for every pixel:
+              for j in range(guitar.size[1]):
+                if guitar_mask_img[i, j] == 255:
+                  fake_parse[0][0][j][i] = 3
+            """
+
+            """      
+            for i in range(guitar.size[0]):  # for every pixel:
+              for j in range(guitar.size[1]):
+                if fake_parse[0][0][j][i] == 0:
+                  fake_parse[0][0][j][i] = 8
+            """
+            
+
+            
+
+            #print(fake_parse[0][0][406][286])
 
             if opt.cuda :
                 old_parse = torch.FloatTensor(fake_parse.size(0), 13, opt.fine_height, opt.fine_width).zero_().cuda()
@@ -232,9 +291,51 @@ def test(opt, test_loader, tocg, generator):
             
 
             output = generator(torch.cat((agnostic, densepose, warped_cloth), dim=1), parse)
+
+
+            """
+            #replace
+            temp_densepose = guitar_unloader(densepose.cpu()[0])
+            densepose_mask_img = temp_densepose.load()
+            
+
+            #print(densepose_mask_img[10,10])
+            temp_im = guitar_unloader(im[0])
+            im_mask_img = temp_im.load()
+            
+            temp_output = guitar_unloader(output.cpu()[0])
+            #print(temp_output.size[0])
+            #print(temp_output.size[1])
+            output_img = temp_output.load()
+            """
+            
+            #print(im_mask_img[0,0])
+
+
+
+
+
+
+
+            """
+            for i in range(guitar.size[0]):  # for every pixel:
+              for j in range(guitar.size[1]):
+                if ((densepose_mask_img[i,j] == (1,1,1)) & (fake_parse[0][0][j][i] == 0)):
+                  output_img[i,j] = im_mask_img[i,j]
+            
+            guitar_loader = transforms.Compose([transforms.ToTensor()]) 
+            output[0] = guitar_loader(temp_output)
+            """
+            
+            
+            
+
             # visualize
             unpaired_names = []
+            
             for i in range(shape[0]):
+                #print("===========batch is",i, "===========")
+                
                 grid = make_image_grid([(clothes[i].cpu() / 2 + 0.5), (pre_clothes_mask[i].cpu()).expand(3, -1, -1), visualize_segmap(parse_agnostic.cpu(), batch=i), ((densepose.cpu()[i]+1)/2),
                                         (warped_cloth[i].cpu().detach() / 2 + 0.5), (warped_clothmask[i].cpu().detach()).expand(3, -1, -1), visualize_segmap(fake_parse_gauss.cpu(), batch=i),
                                         (pose_map[i].cpu()/2 +0.5), (warped_cloth[i].cpu()/2 + 0.5), (agnostic[i].cpu()/2 + 0.5),
@@ -245,8 +346,42 @@ def test(opt, test_loader, tocg, generator):
                 unpaired_names.append(unpaired_name)
                 
             # save output
+            #print(unpaired_names)
             save_images(output, unpaired_names, output_dir)
-                
+
+            save_images(output, ["output.png"], './test_image')
+            save_images(densepose, ["densepose.png"], './test_image')
+            save_images(im, ["im.png"], './test_image')
+            
+
+            grid_test = make_image_grid([visualize_segmap(fake_parse_gauss.cpu(), batch=i)], nrow = 1 )
+            save_image(grid_test, './test_image/grid_test.png')
+            
+
+            output_image = Image.open('./test_image/output.png')
+            densepose_image = Image.open('./test_image/densepose.png')
+            im_image = Image.open('./test_image/im.png')
+            fake_parse_image = Image.open('./test_image/grid_test.png')
+
+            temp_output = output_image.load()
+            temp_densepose = densepose_image.load()
+            temp_im = im_image.load()
+            temp_fake_parse = fake_parse_image.load()
+
+            for i in range(guitar.size[0]):  # for every pixel:
+              for j in range(guitar.size[1]):
+                #if not((temp_densepose[i,j] != (0,0,0)) or (temp_fake_parse[i,j] != (0,0,0))):
+                #if (temp_fake_parse[i,j] == (0,0,0)):
+                if  ((temp_densepose[i,j][0] < 20 ) & (temp_densepose[i,j][1] < 20 ) & (temp_densepose[i,j][2] < 20 )) & ( ( (temp_fake_parse[i,j][0] < 20) & (temp_fake_parse[i,j][1] < 10) & (temp_fake_parse[i,j][2] < 20)) ):
+                  temp_output[i,j] = temp_im[i,j]
+
+            output_image.save("./test_image/" + unpaired_names[0],"png")
+            
+            output_image.close()
+            densepose_image.close()
+            im_image.close()
+            fake_parse_image.close()
+                                
             num += shape[0]
             print(num)
 

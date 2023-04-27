@@ -139,10 +139,15 @@ class CPDatasetTest(data.Dataset):
             #guitar[key].unsqueeze_(0)
             
         #guitar mask
-        guitar_pil_big = Image.open(osp.join(self.data_path, 'guitar-mask', im_name))
-        guitar_pil = transforms.Resize(self.fine_width, interpolation=0)(guitar_pil_big)        
-        
-        guitar = self.transform(guitar_pil)
+        #guitar_pil_big = Image.open(osp.join(self.data_path, 'guitar-mask', im_name))
+        #guitar_array = transforms.Resize(self.fine_width, interpolation=0)(guitar_pil_big)
+        guitar = Image.open(osp.join(self.data_path, 'guitar-mask', im_name))
+        guitar_loader = transforms.Compose([transforms.ToTensor()]) 
+        guitar = guitar_loader(guitar)
+     
+
+
+        #guitar = self.transform(guitar_pil)
 
         # person image
         im_pil_big = Image.open(osp.join(self.data_path, 'image', im_name))
