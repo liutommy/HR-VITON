@@ -16,6 +16,9 @@ from utils import *
 import torchgeometry as tgm
 from collections import OrderedDict
 
+from PIL import Image, ImageDraw
+
+
 def remove_overlap(seg_out, warped_cm):
     
     assert len(warped_cm.shape) == 4
@@ -126,6 +129,7 @@ def test(opt, test_loader, tocg, generator):
                 im = inputs['image']
                 input_label, input_parse_agnostic = label.cuda(), parse_agnostic.cuda()
                 pre_clothes_mask = torch.FloatTensor((pre_clothes_mask.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
+                guitar = inputs['guitar-mask']
             else :
                 pose_map = inputs['pose']
                 pre_clothes_mask = inputs['cloth_mask'][opt.datasetting]
@@ -137,6 +141,7 @@ def test(opt, test_loader, tocg, generator):
                 im = inputs['image']
                 input_label, input_parse_agnostic = label, parse_agnostic
                 pre_clothes_mask = torch.FloatTensor((pre_clothes_mask.detach().cpu().numpy() > 0.5).astype(np.float))
+                guitar = inputs['guitar-mask']
 
 
 
@@ -177,6 +182,16 @@ def test(opt, test_loader, tocg, generator):
                     
             # make generator input parse map
             fake_parse_gauss = gauss(F.interpolate(fake_segmap, size=(opt.fine_height, opt.fine_width), mode='bilinear'))
+            #guitar mask test
+            temp_array = fake_parse_gauss.load()
+            guitar_mask_img = guitar.load()
+            for i in range(mask_img.size[0]):  # for every pixel:
+                for j in range(mask_img.size[1]):
+                    if guitar_mask_img[i, j] == 255:
+                        # change to guitar
+                        temp_array[i, j] = (0, 85, 0, 255)
+                        
+            
             fake_parse = fake_parse_gauss.argmax(dim=1)[:, None]
 
             if opt.cuda :
