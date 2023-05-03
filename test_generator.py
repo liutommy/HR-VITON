@@ -342,6 +342,7 @@ def test(opt, test_loader, tocg, generator):
                                         (im[i]/2 +0.5), (output[i].cpu()/2 +0.5)],
                                         nrow=4)
                 unpaired_name = (inputs['c_name']['paired'][i].split('.')[0] + '_' + inputs['c_name'][opt.datasetting][i].split('.')[0] + '.png')
+
                 save_image(grid, os.path.join(grid_dir, unpaired_name))
                 unpaired_names.append(unpaired_name)
                 
@@ -375,7 +376,9 @@ def test(opt, test_loader, tocg, generator):
                 if  ((temp_densepose[i,j][0] < 20 ) & (temp_densepose[i,j][1] < 20 ) & (temp_densepose[i,j][2] < 20 )) & ( ( (temp_fake_parse[i,j][0] < 20) & (temp_fake_parse[i,j][1] < 10) & (temp_fake_parse[i,j][2] < 20)) ):
                   temp_output[i,j] = temp_im[i,j]
 
-            output_image.save("./test_image/" + unpaired_names[0],"png")
+            test_name = (inputs['c_name']['paired'][0].split('.')[0] + '.png')
+            output_image.save("./output_replace/" + test_name ,"png")
+            fake_parse_image.save("./fake_praser/" + test_name ,"png")
             
             output_image.close()
             densepose_image.close()
